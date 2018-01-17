@@ -1,14 +1,13 @@
 from keras.models import Model
 from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspose
 from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, Callback
 from keras import backend as K
 import tensorflow as tf
 import numpy as np
 
 IMG_WIDTH = IMG_HEIGHT = 128
 IMG_CHANNELS = 3
-
 
 def get_unet_model():
     inputs = Input((None, None, 3))
@@ -59,7 +58,8 @@ def get_callbacks():
     earlystopper = EarlyStopping(monitor='val_dice_coef', patience=3, verbose=1, mode='max')
     reduce_lr = ReduceLROnPlateau(monitor='val_dice_coef', factor=0.5, patience=1, verbose=1, mode='max')
     checkpointer = ModelCheckpoint('model_weights.h5', verbose=1, save_best_only=True, save_weights_only=True)
-    return [earlystopper, checkpointer, reduce_lr]
+    lr_tracker = LearningRateTracker()
+    return [earlystopper, checkpointer, reduce_lr, lr_tracker]
 
 smooth = 1.
 def dice_coef(y_true, y_pred):
@@ -69,3 +69,11 @@ def dice_coef(y_true, y_pred):
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 def dice_coef_loss(y_true, y_pred):
     return -dice_coef(y_true, y_pred)
+
+class LearningRateTracker(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        lr = self.model.optimizer.lr
+        decay = self.model.optimizer.decay
+        iterations = self.model.optimizer.iterations
+        lr_with_decay = lr / (1. + decay * K.cast(iterations, K.dtype(decay)))
+        print("Learning rate: {}".format(K.eval(lr_with_decay)))
