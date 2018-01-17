@@ -51,14 +51,14 @@ def get_unet_model():
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
-    model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=1e-4), loss=dice_coef_loss, metrics=[dice_coef])
 
     return model
 
 def get_callbacks():
     earlystopper = EarlyStopping(monitor='val_dice_coef', patience=3, verbose=1, mode='max')
     reduce_lr = ReduceLROnPlateau(monitor='val_dice_coef', factor=0.5, patience=1, verbose=1, mode='max')
-    checkpointer = ModelCheckpoint('model.h5', verbose=1, save_best_only=True)
+    checkpointer = ModelCheckpoint('model_weights.h5', verbose=1, save_best_only=True, save_weights_only=True)
     return [earlystopper, checkpointer, reduce_lr]
 
 smooth = 1.

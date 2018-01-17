@@ -64,7 +64,6 @@ def test_data(root_dir):
 
 def train():
     stage1_train_path = os.path.join('..', 'input', 'stage1_train')
-    stage1_test_path = os.path.join('..', 'input', 'stage1_test')
 
     X_train, Y_train = load_data(stage1_train_path)
 
@@ -74,21 +73,22 @@ def train():
     #
     # imgs_train -= mean
     # imgs_train /= std
-
+    # model = load_model('model.h5', custom_objects={'dice_coef': dice_coef, 'dice_coef_loss': dice_coef_loss})
     model = get_unet_model()
-    results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=8, epochs=20,
+    results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=8, epochs=100,
                         callbacks=get_callbacks())
 
-    model = load_model('model.h5', custom_objects={'mean_iou': mean_iou})
-    preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
-    preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
+    # preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)
+    # preds_val = model.predict(X_train[int(X_train.shape[0]*0.9):], verbose=1)
 
+
+def make_submission():
+    stage1_test_path = os.path.join('..', 'input', 'stage1_test')
+    model = load_model('model.h5', custom_objects={'dice_coef': dice_coef, 'dice_coef_loss': dice_coef_loss})
     X_test, sizes_test, img_ids_test = test_data(stage1_test_path)
     preds_test = model.predict(X_test, verbose=1)
 
     # Threshold predictions
-    preds_train_t = (preds_train > 0.5).astype(np.uint8)
-    preds_val_t = (preds_val > 0.5).astype(np.uint8)
     preds_test_t = (preds_test > 0.5).astype(np.uint8)
 
     # Create list of upsampled test masks
@@ -112,3 +112,4 @@ def train():
 
 if __name__ == '__main__':
     train()
+    # make_submission()
