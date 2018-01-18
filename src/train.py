@@ -10,52 +10,84 @@ from keras.models import load_model
 import random
 from helper import *
 from tqdm import tqdm
+from keras.preprocessing.image import ImageDataGenerator
 
 seed = 42
 random.seed = seed
-np.random.seed = seed
+np.random.seed(seed)
+
 IMG_WIDTH = IMG_HEIGHT = 256
 IMG_CHANNELS = 3
 BATCH_SIZE = 8
 
+def combine_generator(gen1, gen2):
+    while True:
+        yield(gen1.next(), gen2.next())
+
 def train():
+
     data = np.load('data.npz')
     X_train = data['X_train']
     y_train = data['y_train']
     X_valid = data['X_valid']
     y_valid = data['y_valid']
-    
-    train_datagen = ImageDataGenerator(
-        rotation_range=180,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        horizontal_flip=False)
-    validation_datagen = ImageDataGenerator(
-        # rotation_range=30,
-        # width_shift_range=0.1,
-        # height_shift_range=0.1,
-        horizontal_flip=False)
-    train_datagen.fit(x_train)
-    validation_datagen.fit(x_valid)
 
-    # mean = np.mean(imgs_train)  # mean for data centering
-    # std = np.std(imgs_train)  # std for data normalization
-    #
-    # imgs_train -= mean
-    # imgs_train /= std
-    # model = load_model('model.h5', custom_objects={'dice_coef': dice_coef, 'dice_coef_loss': dice_coef_loss})
+    data_gen_args = dict(rotation_range=90.,
+                         width_shift_range=0.1,
+                         height_shift_range=0.1,
+                         zoom_range=0.2)
+    image_datagen_train = ImageDataGenerator(**data_gen_args)
+    mask_datagen_train = ImageDataGenerator(**data_gen_args)
+    image_datagen_valid = ImageDataGenerator(**data_gen_args)
+    mask_datagen_valid = ImageDataGenerator(**data_gen_args)
+    image_datagen_train.fit(y_train, augment=True, seed=seed)
+    mask_datagen_train.fit(y_train, augment=True, seed=seed)
+    image_datagen_valid.fit(y_train, augment=True, seed=seed)
+    mask_datagen_valid.fit(y_train, augment=True, seed=seed)
+
+    image_generator_train = image_datagen_train.flow(
+        X_train,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        seed=seed)
+    mask_generator_train = mask_datagen_train.flow(
+        y_train,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        seed=seed)
+    image_generator_valid = image_datagen_valid.flow(
+        X_train,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        seed=seed)
+    mask_generator_valid = mask_datagen_valid.flow(
+        y_train,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        seed=seed)
+    train_generator = combine_generator(image_generator_train, mask_generator_train)
+    valid_generator = combine_generator(image_generator_valid, mask_generator_valid)
+
     model = get_unet_model()
+    model.fit_generator(
+        generator=train_generator,
+        valid_generator=valid_generator,
+        steps_per_epoch=X_train.shape[0] // BATCH_SIZE // 10,
+        validation_steps=X_valid.shape[0] // BATCH_SIZE,
+        epochs=100,
+        callbacks=get_callbacks())
+
     # results = model.fit(X_train, Y_train, validation_split=0.1, batch_size=8, epochs=100,
     #                     callbacks=get_callbacks())
 
-    model.fit_generator(
-        train_datagen.flow(x_train, y_train, batch_size=batch_size),
-        steps_per_epoch=x_train.shape[0] // batch_size,
-        epochs=100,
-        callbacks=get_callbacks(),
-        validation_steps=x_valid.shape[0] // batch_size,
-        validation_data=validation_datagen.flow(x_valid, y_valid, batch_size=batch_size)
-    )
+    # model.fit_generator(
+    #     train_datagen.flow(x_train, y_train, batch_size=batch_size),
+    #     steps_per_epoch=x_train.shape[0] // batch_size,
+    #     epochs=100,
+    #     callbacks=get_callbacks(),
+    #     validation_steps=x_valid.shape[0] // batch_size,
+    #     validation_data=validation_datagen.flow(x_valid, y_valid, batch_size=batch_size)
+    # )
 
 
     # preds_train = model.predict(X_train[:int(X_train.shape[0]*0.9)], verbose=1)

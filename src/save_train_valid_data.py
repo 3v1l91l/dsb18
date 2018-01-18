@@ -67,7 +67,7 @@ def save_data():
 
     X_train, X_valid, y_train, y_valid = _get_train_data(stage1_train_path)
     X_test, sizes_test, img_ids_test = _get_test_data(stage1_test_path)
-    np.savez('data.npz', X_train=X_train, Y_train=y_train, X_valid=X_valid, y_valid=y_valid,
+    np.savez('data.npz', X_train=X_train, y_train=y_train, X_valid=X_valid, y_valid=y_valid,
              X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test)
 
 
