@@ -71,8 +71,8 @@ def train():
     model = get_unet_model()
     model.fit_generator(
         generator=train_generator,
-        valid_generator=valid_generator,
-        steps_per_epoch=X_train.shape[0] // BATCH_SIZE // 10,
+        validation_data=valid_generator,
+        steps_per_epoch=X_train.shape[0] // BATCH_SIZE,
         validation_steps=X_valid.shape[0] // BATCH_SIZE,
         epochs=100,
         callbacks=get_callbacks())
