@@ -1,13 +1,10 @@
 import os
-from skimage.transform import resize
 from skimage.io import imsave
 import numpy as np
 import skimage.io
 import matplotlib.pyplot as plt
 import skimage.segmentation
 from model import *
-from skimage import transform
-from skimage.io import imread, imshow, imread_collection, concatenate_images
 import pandas as pd
 from keras.models import load_model
 import random
@@ -17,65 +14,17 @@ from tqdm import tqdm
 seed = 42
 random.seed = seed
 np.random.seed = seed
-IMG_WIDTH = IMG_HEIGHT = 128
+IMG_WIDTH = IMG_HEIGHT = 256
 IMG_CHANNELS = 3
 BATCH_SIZE = 8
 
-def img_resize(img):
-    return transform.resize(img, (IMG_WIDTH, IMG_WIDTH), preserve_range=True)
-
-def load_data(root_dir):
-    img_ids = os.listdir(root_dir)
-    img_ids = [x for x in img_ids if not x.startswith('.')]
-    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
-    Y = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
-    # X = Y = []
-    for i, img_id in enumerate(img_ids):
-        image = skimage.io.imread(os.path.join(root_dir, img_id, 'images', img_id +".png"))[:,:,:IMG_CHANNELS]
-        masks = skimage.io.imread_collection(os.path.join(root_dir, img_id, 'masks', '*.png')).concatenate()
-        image = resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
-        X[i] = image
-        # X.append(image)
-
-        overlay_mask = np.zeros((IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
-        overlay_mask = np.zeros((image.shape[0], image.shape[1], 1), dtype=np.bool)
-
-        for mask in masks:
-            mask = np.expand_dims(mask, axis=-1)
-            overlay_mask = np.maximum(mask, overlay_mask)
-        Y[i] = overlay_mask
-        # Y.append(overlay_mask)
-    # X = np.array(X)
-    # Y = np.array(Y)
-    X = X / 255
-    return X, Y
-
-def test_data(root_dir):
-    img_ids = os.listdir(root_dir)
-    img_ids = [x for x in img_ids if not x.startswith('.')]
-
-    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
-    sizes = []
-    for i, img_id in tqdm(enumerate(img_ids)):
-        image = skimage.io.imread(os.path.join(root_dir, img_id, 'images', img_id +".png"))[:,:,:IMG_CHANNELS]
-        sizes.append([image.shape[0], image.shape[1]])
-        image = resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
-        X[i] = image
-    X = X / 255
-    return X, sizes, img_ids
-
-    images = []
-    for img_id in img_ids:
-        image = skimage.io.imread(os.path.join(root_dir, img_id, 'images', img_id + ".png"))
-        images.append(image)
-    train_img_df = pd.DataFrame({'images': images})
-    print(train_img_df['images'].map(lambda x: x.shape).value_counts())
-
 def train():
-    stage1_train_path = os.path.join('..', 'input', 'stage1_train')
-
-    X_train, Y_train = load_data(stage1_train_path)
-    sklearn.model_selection.train_test_split
+    data = np.load('data.npz')
+    X_train = data['X_train']
+    y_train = data['y_train']
+    X_valid = data['X_valid']
+    y_valid = data['y_valid']
+    
     train_datagen = ImageDataGenerator(
         rotation_range=180,
         width_shift_range=0.1,
@@ -115,6 +64,8 @@ def train():
 
 def make_submission():
     stage1_test_path = os.path.join('..', 'input', 'stage1_test')
+    X_test = X_test, sizes_test = sizes_test, img_ids_test = img_ids_test
+
     model = get_unet_model()
     model.load_weights('model_weights.h5')
     # model = load_model('model.h5', custom_objects={'dice_coef': dice_coef, 'dice_coef_loss': dice_coef_loss})
