@@ -5,6 +5,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, C
 from keras import backend as K
 import tensorflow as tf
 import numpy as np
+from keras.losses import binary_crossentropy
 
 IMG_WIDTH = IMG_HEIGHT = 256
 IMG_CHANNELS = 3
@@ -50,8 +51,7 @@ def get_unet_model():
 
     model = Model(inputs=[inputs], outputs=[conv10])
 
-    # model.compile(optimizer=Adam(lr=1e-4), loss=mean_iou_loss, metrics=[mean_iou])
-    model.compile(optimizer=Adam(lr=1e-3), loss='binary_crossentropy', metrics=[mean_iou])
+    model.compile(optimizer=Adam(lr=1e-3), loss=bce_dice_loss, metrics=[mean_iou])
 
     return model
 
@@ -63,15 +63,15 @@ def get_callbacks():
     lr_tracker = LearningRateTracker()
     return [earlystopper, checkpointer, reduce_lr, lr_tracker]
 
-smooth = 1.
 def dice_coef(y_true, y_pred):
+    smooth = 1.
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred)
 
+def bce_dice_loss(y_true, y_pred):
+    return 0.5 * binary_crossentropy(y_true, y_pred) - dice_coef(y_true, y_pred)
 
 def mean_iou(y_true, y_pred):
     y_pred = tf.to_int32(y_pred > 0.5)
@@ -80,9 +80,6 @@ def mean_iou(y_true, y_pred):
     with tf.control_dependencies([up_opt]):
        score = tf.identity(score)
     return score
-
-def mean_iou_loss(y_true, y_pred):
-    return -mean_iou(y_true, y_pred)
 
 class LearningRateTracker(Callback):
     def on_epoch_end(self, epoch, logs=None):

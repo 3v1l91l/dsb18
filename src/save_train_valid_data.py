@@ -46,11 +46,14 @@ def _get_test_data(root_dir):
 
     X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     sizes = []
+    X_orig = []
     for i, img_id in tqdm(enumerate(img_ids), total=len(img_ids)):
         image = skimage.io.imread(os.path.join(root_dir, img_id, 'images', img_id + ".png"))[:, :, :IMG_CHANNELS]
+        X_orig.append(image)
         sizes.append([image.shape[0], image.shape[1]])
         image = transform.resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
         X[i] = image
+
 
     # images = []
     # for img_id in img_ids:
@@ -60,16 +63,18 @@ def _get_test_data(root_dir):
     # print(train_img_df['images'].map(lambda x: x.shape).value_counts())
     X = X / 255
 
-    return X, sizes, img_ids
+    return X, sizes, img_ids, X_orig
 
 def save_data():
     stage1_train_path = os.path.join('..', 'input', 'stage1_train')
     stage1_test_path = os.path.join('..', 'input', 'stage1_test')
 
     X_train, X_valid, y_train, y_valid = _get_train_data(stage1_train_path)
-    X_test, sizes_test, img_ids_test = _get_test_data(stage1_test_path)
+    X_test, sizes_test, img_ids_test, X_orig = _get_test_data(stage1_test_path)
     np.savez('data.npz', X_train=X_train, y_train=y_train, X_valid=X_valid, y_valid=y_valid,
-             X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test)
+             X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test, X_orig=X_orig)
+    # np.savez('data.npz',
+    #          X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test, X_orig=X_orig)
 
 
 if __name__ == '__main__':

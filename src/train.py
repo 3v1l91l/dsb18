@@ -11,6 +11,7 @@ import random
 from helper import *
 from tqdm import tqdm
 from keras.preprocessing.image import ImageDataGenerator
+from skimage import transform
 
 seed = 42
 random.seed = seed
@@ -99,29 +100,18 @@ def train():
 
 
 def make_submission():
-    stage1_test_path = os.path.join('..', 'input', 'stage1_test')
-    X_test = X_test, sizes_test = sizes_test, img_ids_test = img_ids_test
+    data = np.load('data.npz')
+    X_test = data['X_test']
+    sizes_test = data['sizes_test']
+    img_ids_test = data['img_ids_test']
 
-    model = get_unet_model()
-    model.load_weights('model_weights.h5')
-    # model = load_model('model.h5', custom_objects={'dice_coef': dice_coef, 'dice_coef_loss': dice_coef_loss})
-    X_test, sizes_test, img_ids_test = test_data(stage1_test_path)
+    model = load_model('model.h5', custom_objects={'mean_iou': mean_iou, 'bce_dice_loss': bce_dice_loss})
     preds_test = model.predict(X_test, verbose=1)
-
-    # Threshold predictions
     preds_test_t = (preds_test > 0.5).astype(np.uint8)
-    ix = random.randint(0, len(preds_test_t))
 
-    # plt.figure(1)
-    # plt.subplot(211)
-    # plt.imshow(X_test[ix])
-    # plt.subplot(212)
-    # plt.imshow(np.squeeze(preds_test_t[ix]))
-    # plt.show()
-    # Create list of upsampled test masks
     preds_test_upsampled = []
     for i in range(len(preds_test_t)):
-        preds_test_upsampled.append(resize(np.squeeze(preds_test_t[i]),
+        preds_test_upsampled.append(transform.resize(np.squeeze(preds_test_t[i]),
                                            (sizes_test[i][0], sizes_test[i][1]),
                                            mode='constant', preserve_range=True))
 
@@ -139,4 +129,4 @@ def make_submission():
 
 if __name__ == '__main__':
     train()
-    # make_submission()
+    make_submission()
