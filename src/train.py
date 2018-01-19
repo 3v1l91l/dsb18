@@ -35,7 +35,10 @@ def train():
     data_gen_args = dict(rotation_range=90.,
                          width_shift_range=0.1,
                          height_shift_range=0.1,
-                         zoom_range=0.2)
+                         zoom_range=0.2,
+                         horizontal_flip=True,
+                         vertical_flip=True,
+                         fill_mode='wrap')
     image_datagen_train = ImageDataGenerator(**data_gen_args)
     mask_datagen_train = ImageDataGenerator(**data_gen_args)
     image_datagen_valid = ImageDataGenerator(**data_gen_args)

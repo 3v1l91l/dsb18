@@ -11,8 +11,9 @@ IMG_CHANNELS = 3
 
 
 def _get_train_data(train_dir):
+    excluded_img_ids = ['7b38c9173ebe69b4c6ba7e703c0c27f39305d9b2910f46405993d2ea7a963b80']
     img_ids = os.listdir(train_dir)
-    img_ids = [x for x in img_ids if not x.startswith('.')]
+    img_ids = [x for x in img_ids if not (x.startswith('.') or x in excluded_img_ids)]
     X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     y = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
     # X = Y = []
