@@ -72,6 +72,7 @@ def train():
     valid_generator = combine_generator(image_generator_valid, mask_generator_valid)
 
     model = get_unet_model()
+    model.load_weights('model_weights.h5')
     model.fit_generator(
         generator=train_generator,
         validation_data=valid_generator,

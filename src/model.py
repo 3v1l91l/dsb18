@@ -58,7 +58,8 @@ def get_unet_model():
 def get_callbacks():
     earlystopper = EarlyStopping(monitor='val_mean_iou', patience=5, verbose=1, mode='max')
     reduce_lr = ReduceLROnPlateau(monitor='val_mean_iou', factor=0.5, patience=1, verbose=1, mode='max')
-    checkpointer = ModelCheckpoint('model_weights.h5', mode = 'max', monitor='val_mean_iou', verbose=1, save_best_only=True, save_weights_only=True)
+    checkpointer = ModelCheckpoint('model.h5', mode = 'max', monitor='val_mean_iou', verbose=1,
+                                   save_best_only=True, save_weights_only=False)
     lr_tracker = LearningRateTracker()
     return [earlystopper, checkpointer, reduce_lr, lr_tracker]
 
