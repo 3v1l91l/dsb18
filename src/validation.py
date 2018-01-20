@@ -35,7 +35,7 @@ def validate():
         labels = get_ground_truth_labels(masks)
         # image = normalize_image(image)
         # image = image / 255
-        seg_prec = calculate_iou(image, labels, model, id)
+        seg_prec = calculate_iou(image, labels, model)
         prec.append(seg_prec)
         if seg_prec< 0.3:
             print('img id: {}, prec: {}'.format(id, seg_prec))
