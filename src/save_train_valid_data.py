@@ -7,16 +7,20 @@ from tqdm import tqdm
 from skimage import transform
 from helper import *
 
+VALIDATION_SIZE = 0.2
 IMG_WIDTH = IMG_HEIGHT = 256
-FILE_IMG_CHANNELS = 3
-IMG_CHANNELS = 1
 grid_size = 8
+FILE_IMG_CHANNELS = 3
 
-def _get_train_data(train_dir):
+def _get_train_data(train_dir, normalize):
     excluded_img_ids = ['7b38c9173ebe69b4c6ba7e703c0c27f39305d9b2910f46405993d2ea7a963b80']
     img_ids = os.listdir(train_dir)
     img_ids = [x for x in img_ids if not (x.startswith('.') or x in excluded_img_ids)]
-    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    img_channels = 3
+    if normalize:
+        img_channels = 1
+
+    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, img_channels), dtype=np.uint8)
     y = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, 1), dtype=np.bool)
     # X = Y = []
     for i, img_id in tqdm(enumerate(img_ids), total=len(img_ids)):
@@ -24,7 +28,8 @@ def _get_train_data(train_dir):
         masks = imread_collection(os.path.join(train_dir, img_id, 'masks', '*.png')).concatenate()
         image = transform.resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
         image = image.astype(np.uint8)
-        image = normalize_image(image)
+        if normalize:
+            image = normalize_image(image)
         X[i] = image
         # X.append(image)
 
@@ -40,15 +45,17 @@ def _get_train_data(train_dir):
     # Y = np.array(Y)
     # X = X / 255
 
-    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = train_test_split(X, y, img_ids, test_size=0.1)
+    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = train_test_split(X, y, img_ids, test_size=VALIDATION_SIZE)
     return X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid
 
 
-def _get_test_data(root_dir):
+def _get_test_data(root_dir, normalize):
     img_ids = os.listdir(root_dir)
     img_ids = [x for x in img_ids if not x.startswith('.')]
-
-    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    img_channels = 3
+    if normalize:
+        img_channels = 1
+    X = np.zeros((len(img_ids), IMG_HEIGHT, IMG_WIDTH, img_channels), dtype=np.uint8)
     sizes = []
     X_orig = []
     for i, img_id in tqdm(enumerate(img_ids), total=len(img_ids)):
@@ -57,7 +64,8 @@ def _get_test_data(root_dir):
         sizes.append([image.shape[0], image.shape[1]])
         image = transform.resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
         image = image.astype(np.uint8)
-        image = normalize_image(image)
+        if normalize:
+            image = normalize_image(image)
         X[i] = image
 
 
@@ -75,14 +83,11 @@ def save_data():
     stage1_train_path = os.path.join('..', 'input', 'stage1_train')
     stage1_test_path = os.path.join('..', 'input', 'stage1_test')
 
-    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = _get_train_data(stage1_train_path)
-    X_test, sizes_test, img_ids_test, X_test_orig = _get_test_data(stage1_test_path)
+    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = _get_train_data(stage1_train_path, normalize=False)
+    X_test, sizes_test, img_ids_test, X_test_orig = _get_test_data(stage1_test_path, normalize=False)
     np.savez('data.npz', X_train=X_train, y_train=y_train, X_valid=X_valid, y_valid=y_valid,
              img_ids_train=img_ids_train, img_ids_valid=img_ids_valid,
              X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test, X_test_orig=X_test_orig)
-    # np.savez('data.npz',
-    #          X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test, X_orig=X_orig)
-
 
 if __name__ == '__main__':
     save_data()

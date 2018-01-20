@@ -8,7 +8,7 @@ import numpy as np
 from keras.losses import binary_crossentropy
 
 IMG_WIDTH = IMG_HEIGHT = 256
-IMG_CHANNELS = 1
+IMG_CHANNELS = 3
 
 def get_unet_model():
     inputs = Input((IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS))
@@ -51,51 +51,51 @@ def get_unet_model():
     # model = Model(inputs=[inputs], outputs=[conv10])
 
     c1 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(inputs)
-    c1 = Dropout(0.1)(c1)
+    # c1 = Dropout(0.1)(c1)
     c1 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c1)
     p1 = MaxPooling2D((2, 2))(c1)
 
     c2 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(p1)
-    c2 = Dropout(0.1)(c2)
+    # c2 = Dropout(0.1)(c2)
     c2 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c2)
     p2 = MaxPooling2D((2, 2))(c2)
 
     c3 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(p2)
-    c3 = Dropout(0.2)(c3)
+    # c3 = Dropout(0.2)(c3)
     c3 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c3)
     p3 = MaxPooling2D((2, 2))(c3)
 
     c4 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(p3)
-    c4 = Dropout(0.2)(c4)
+    # c4 = Dropout(0.2)(c4)
     c4 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c4)
     p4 = MaxPooling2D(pool_size=(2, 2))(c4)
 
     c5 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(p4)
-    c5 = Dropout(0.3)(c5)
+    # c5 = Dropout(0.3)(c5)
     c5 = Conv2D(256, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c5)
 
     u6 = Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(c5)
     u6 = concatenate([u6, c4])
     c6 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(u6)
-    c6 = Dropout(0.2)(c6)
+    # c6 = Dropout(0.2)(c6)
     c6 = Conv2D(128, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c6)
 
     u7 = Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(c6)
     u7 = concatenate([u7, c3])
     c7 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(u7)
-    c7 = Dropout(0.2)(c7)
+    # c7 = Dropout(0.2)(c7)
     c7 = Conv2D(64, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c7)
 
     u8 = Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(c7)
     u8 = concatenate([u8, c2])
     c8 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(u8)
-    c8 = Dropout(0.1)(c8)
+    # c8 = Dropout(0.1)(c8)
     c8 = Conv2D(32, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c8)
 
     u9 = Conv2DTranspose(16, (2, 2), strides=(2, 2), padding='same')(c8)
     u9 = concatenate([u9, c1], axis=3)
     c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(u9)
-    c9 = Dropout(0.1)(c9)
+    # c9 = Dropout(0.1)(c9)
     c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c9)
 
     outputs = Conv2D(1, (1, 1), activation='sigmoid')(c9)
@@ -110,9 +110,13 @@ def get_unet_model():
     return model
 
 def get_callbacks():
-    earlystopper = EarlyStopping(monitor='val_mean_iou', patience=5, verbose=1, mode='max')
-    reduce_lr = ReduceLROnPlateau(monitor='val_mean_iou', factor=0.5, patience=1, verbose=1, mode='max')
-    checkpointer = ModelCheckpoint('model.h5', mode = 'max', monitor='val_mean_iou', verbose=1,
+    # earlystopper = EarlyStopping(monitor='val_mean_iou', patience=5, verbose=1, mode='max')
+    # reduce_lr = ReduceLROnPlateau(monitor='val_mean_iou', factor=0.5, patience=1, verbose=1, mode='max')
+    # checkpointer = ModelCheckpoint('model.h5', mode = 'max', monitor='val_mean_iou', verbose=1,
+    #                                save_best_only=True, save_weights_only=False)
+    earlystopper = EarlyStopping(monitor='val_dice_coef', patience=5, verbose=1, mode='max')
+    reduce_lr = ReduceLROnPlateau(monitor='val_dice_coef', factor=0.5, patience=1, verbose=1, mode='max')
+    checkpointer = ModelCheckpoint('model.h5', monitor='val_dice_coef', mode = 'max',  verbose=1,
                                    save_best_only=True, save_weights_only=False)
     lr_tracker = LearningRateTracker()
     return [earlystopper, checkpointer, reduce_lr, lr_tracker]

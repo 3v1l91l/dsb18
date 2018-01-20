@@ -21,10 +21,7 @@ random.seed = seed
 np.random.seed(seed)
 
 IMG_WIDTH = IMG_HEIGHT = 256
-IMG_CHANNELS = 3
 BATCH_SIZE = 8
-
-
 
 def activator_masks(images, augmenter, parents, default):
     if augmenter.name in ["GaussianBlur", "Dropout"]:
@@ -48,13 +45,13 @@ def train():
         iaa.Fliplr(0.2),
         iaa.Flipud(0.2),
         #         iaa.GaussianBlur((0, 2.0), name="GaussianBlur"),
-        sometimes(iaa.Affine(
-            scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
-            rotate=(-90, 90),  # rotate by -45 to +45 degrees
-            shear=(-20, 20),  # shear by -16 to +16 degrees
-            cval=0,  # if mode is constant, use a cval between 0 and 255
-            mode='constant'  # use any of scikit-image's warping modes (see 2nd image from the top for examples)
-        ))
+        # sometimes(iaa.Affine(
+        #     scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
+        #     rotate=(-90, 90),  # rotate by -45 to +45 degrees
+        #     shear=(-20, 20),  # shear by -16 to +16 degrees
+        #     cval=0,  # if mode is constant, use a cval between 0 and 255
+        #     mode='constant'  # use any of scikit-image's warping modes (see 2nd image from the top for examples)
+        # ))
     ])
     hooks_masks= ia.HooksImages(activator=activator_masks)
     seq = seq.to_deterministic()
@@ -111,6 +108,7 @@ def train():
 
     model = get_unet_model()
     # model.load_weights('model_weights.h5')
+    # model = load_model('model.h5', custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
     model.fit_generator(
         generator=generator(seq, X_train, y_train, BATCH_SIZE),
         validation_data=generator(seq, X_valid, y_valid, BATCH_SIZE, hooks=hooks_masks),
@@ -126,7 +124,7 @@ def make_submission():
     sizes_test = data['sizes_test']
     img_ids_test = data['img_ids_test']
 
-    model = load_model('model.h5', custom_objects={'mean_iou': mean_iou, 'bce_dice_loss': bce_dice_loss})
+    model = load_model('model.h5', custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
     preds_test = model.predict(X_test, verbose=1)
     preds_test_t = (preds_test > 0.5).astype(np.uint8)
 
