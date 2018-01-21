@@ -15,14 +15,13 @@ from skimage import transform
 from imgaug import augmenters as iaa
 from generators import *
 import imgaug as ia
+from zf import ZF_UNET_224
 
 seed = 42
 random.seed = seed
 np.random.seed(seed)
 
-IMG_WIDTH = IMG_HEIGHT = 256
 BATCH_SIZE = 8
-
 def activator_masks(images, augmenter, parents, default):
     if augmenter.name in ["GaussianBlur", "Dropout"]:
         return False
@@ -44,7 +43,10 @@ def train():
     seq = iaa.Sequential([
         iaa.Fliplr(0.2),
         iaa.Flipud(0.2),
-        #         iaa.GaussianBlur((0, 2.0), name="GaussianBlur"),
+        # iaa.GaussianBlur((0, 2.0), name="GaussianBlur"),
+        # iaa.PiecewiseAffine(scale=(0.01, 0.05)),
+        # iaa.Affine(shear=(-16, 16))
+
         # sometimes(iaa.Affine(
         #     scale={"x": (0.8, 1.2), "y": (0.8, 1.2)},
         #     rotate=(-90, 90),  # rotate by -45 to +45 degrees
@@ -106,8 +108,9 @@ def train():
     #     workers=4,
     #     callbacks=get_callbacks())
 
-    model = get_unet_model()
-    # model.load_weights('model_weights.h5')
+    # model = get_unet_model()
+    model = ZF_UNET_224()
+    # model.load_weights('model.h5')
     # model = load_model('model.h5', custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
     model.fit_generator(
         generator=generator(seq, X_train, y_train, BATCH_SIZE),
@@ -118,34 +121,5 @@ def train():
         workers=4,
         callbacks=get_callbacks())
 
-def make_submission():
-    data = np.load('data.npz')
-    X_test = data['X_test']
-    sizes_test = data['sizes_test']
-    img_ids_test = data['img_ids_test']
-
-    model = load_model('model.h5', custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
-    preds_test = model.predict(X_test, verbose=1)
-    preds_test_t = (preds_test > 0.5).astype(np.uint8)
-
-    preds_test_upsampled = []
-    for i in range(len(preds_test_t)):
-        preds_test_upsampled.append(transform.resize(np.squeeze(preds_test_t[i]),
-                                           (sizes_test[i][0], sizes_test[i][1]),
-                                           mode='constant', preserve_range=True))
-
-    new_test_ids = []
-    rles = []
-    for n, id_ in enumerate(img_ids_test):
-        rle = list(prob_to_rles(preds_test_upsampled[n]))
-        rles.extend(rle)
-        new_test_ids.extend([id_] * len(rle))
-
-    sub = pd.DataFrame()
-    sub['ImageId'] = new_test_ids
-    sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
-    sub.to_csv('sub.csv', index=False)
-
 if __name__ == '__main__':
     train()
-    # make_submission()

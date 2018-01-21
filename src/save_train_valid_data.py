@@ -6,9 +6,12 @@ from skimage.io import imread, imshow, imread_collection, concatenate_images
 from tqdm import tqdm
 from skimage import transform
 from helper import *
+import matplotlib.pyplot as plt
 
 VALIDATION_SIZE = 0.2
-IMG_WIDTH = IMG_HEIGHT = 256
+# IMG_WIDTH = IMG_HEIGHT = 512
+IMG_WIDTH = IMG_HEIGHT = 224
+
 grid_size = 8
 FILE_IMG_CHANNELS = 3
 
@@ -26,10 +29,15 @@ def _get_train_data(train_dir, normalize):
     for i, img_id in tqdm(enumerate(img_ids), total=len(img_ids)):
         image = imread(os.path.join(train_dir, img_id, 'images', img_id +".png"))[:,:,:FILE_IMG_CHANNELS]
         masks = imread_collection(os.path.join(train_dir, img_id, 'masks', '*.png')).concatenate()
+        # fig = plt.figure(figsize=(10, 10))
+        # plt.imshow(image)
         image = transform.resize(image, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
         image = image.astype(np.uint8)
         if normalize:
             image = normalize_image(image)
+
+        # fig = plt.figure(figsize=(10, 10))
+        # plt.imshow(np.squeeze(image))
         X[i] = image
         # X.append(image)
 

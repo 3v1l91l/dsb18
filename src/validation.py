@@ -15,8 +15,9 @@ from skimage.morphology import watershed
 from skimage.feature import peak_local_max
 from scipy import ndimage as ndi
 from model import *
+from helper import *
 
-IMG_HEIGHT = IMG_WIDTH = 256
+IMG_HEIGHT = IMG_WIDTH = 512
 
 def validate():
     data = np.load('data.npz')
@@ -33,7 +34,7 @@ def validate():
         masks = imread_collection(masks).concatenate()
         masks = np.array([transform.resize(x, (IMG_HEIGHT, IMG_WIDTH), mode='constant') for x in masks])
         labels = get_ground_truth_labels(masks)
-        # image = normalize_image(image)
+        image = normalize_image(image)
         # image = image / 255
         seg_prec = calculate_iou(image, labels, model)
         prec.append(seg_prec)
@@ -78,21 +79,21 @@ def calculate_iou(image, labels, model):
     # fig = plt.figure(figsize=(10,10))
     # plt.hist(y_pred)
     # plt.title("hist y_pred")
-    # image_ = y_pred > 0.5 #0.9999999
-    # image_ = np.squeeze(image_).astype(np.uint8)
-    # distance = ndi.distance_transform_edt(image_)
-    # local_maxi = peak_local_max(distance, indices=False, labels=image_, min_distance=5)#, footprint=np.ones((3, 3)))
-    # markers = ndi.label(local_maxi)[0]
-    # watershed_labels = watershed(-distance, markers, mask=image_)
+    image_ = y_pred > 0.5 #0.9999999
+    image_ = np.squeeze(image_).astype(np.uint8)
+    distance = ndi.distance_transform_edt(image_)
+    local_maxi = peak_local_max(distance, indices=False, labels=image_, min_distance=15)#, footprint=np.ones((3, 3)))
+    markers = ndi.label(local_maxi)[0]
+    watershed_labels = watershed(-distance, markers, mask=image_)
     # fig = plt.figure(figsize=(10,10))
     # plt.imshow(distance)
     # plt.title("distance")
     # fig = plt.figure(figsize=(10,10))
     # plt.imshow(watershed_labels)
-    # plt.title("labels watershed")
-    # # print(np.unique(watershed_labels))
-    # y_pred = watershed_labels
-    y_pred = y_pred_label
+    plt.title("labels watershed")
+    # print(np.unique(watershed_labels))
+    y_pred = watershed_labels
+    # y_pred = y_pred_label
 
     # Compute number of objects
     true_objects = len(np.unique(labels))
