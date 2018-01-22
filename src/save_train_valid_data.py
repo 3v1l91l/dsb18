@@ -7,10 +7,11 @@ from tqdm import tqdm
 from skimage import transform
 from helper import *
 import matplotlib.pyplot as plt
+import cv2
 
 VALIDATION_SIZE = 0.2
 # IMG_WIDTH = IMG_HEIGHT = 512
-IMG_WIDTH = IMG_HEIGHT = 224
+IMG_WIDTH = IMG_HEIGHT = 256
 
 grid_size = 8
 FILE_IMG_CHANNELS = 3
@@ -45,8 +46,27 @@ def _get_train_data(train_dir, normalize):
         # overlay_mask = np.zeros((image.shape[0], image.shape[1], 1), dtype=np.bool)
 
         for mask in masks:
-            mask = np.expand_dims(mask, axis=-1)
-            overlay_mask = np.maximum(transform.resize(mask, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True), overlay_mask)
+            mask[mask == 255] = 1
+            mask = mask.astype(np.uint8)
+            _, contours, hierarchy = cv2.findContours(mask.copy(),
+                                                      cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE,
+                                                      offset=(0, 0))
+            mask_with_contours = cv2.drawContours(mask.copy(), contours, -1, (2, 0, 0))
+            # mask = np.expand_dims(mask, axis=-1)
+            # mask = transform.resize(mask, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
+            mask_with_contours = np.expand_dims(mask_with_contours, axis=-1)
+            mask_with_contours = transform.resize(mask_with_contours, (IMG_HEIGHT, IMG_WIDTH), mode='constant', preserve_range=True)
+
+            # fig = plt.figure()
+            # plt.subplot(1,2,1)
+            # plt.imshow(np.squeeze(mask))
+            # plt.subplot(1,2,2)
+            # plt.imshow(np.squeeze(mask_with_contours))
+
+            overlay_mask = np.maximum(mask_with_contours, overlay_mask)
+
+        fig = plt.figure()
+        plt.imshow(np.squeeze(overlay_mask))
         y[i] = overlay_mask
         # Y.append(overlay_mask)
     # X = np.array(X)
@@ -91,8 +111,8 @@ def save_data():
     stage1_train_path = os.path.join('..', 'input', 'stage1_train')
     stage1_test_path = os.path.join('..', 'input', 'stage1_test')
 
-    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = _get_train_data(stage1_train_path, normalize=False)
-    X_test, sizes_test, img_ids_test, X_test_orig = _get_test_data(stage1_test_path, normalize=False)
+    X_train, X_valid, y_train, y_valid, img_ids_train, img_ids_valid = _get_train_data(stage1_train_path, normalize=True)
+    X_test, sizes_test, img_ids_test, X_test_orig = _get_test_data(stage1_test_path, normalize=True)
     np.savez('data.npz', X_train=X_train, y_train=y_train, X_valid=X_valid, y_valid=y_valid,
              img_ids_train=img_ids_train, img_ids_valid=img_ids_valid,
              X_test=X_test, sizes_test=sizes_test, img_ids_test=img_ids_test, X_test_orig=X_test_orig)
