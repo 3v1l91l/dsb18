@@ -13,44 +13,16 @@ IMG_WIDTH = IMG_HEIGHT = 256
 IMG_CHANNELS = 1
 
 def get_unet_model(num_classes=3):
+    if num_classes == 2:
+        num_classes = 1
+        loss = dice_coef_loss
+        activation = 'sigmoid'
+    else:
+        loss = 'categorical_crossentropy'
+        activation = 'softmax'
+
+
     inputs = Input((IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS))
-    # conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
-    # conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
-    # pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-    #
-    # conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(pool1)
-    # conv2 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv2)
-    # pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-    #
-    # conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(pool2)
-    # conv3 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv3)
-    # pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
-    #
-    # conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(pool3)
-    # conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
-    # pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-    #
-    # conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
-    # conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
-    #
-    # up6 = concatenate([Conv2DTranspose(256, (2, 2), strides=(2, 2), padding='same')(conv5), conv4], axis=3)
-    # conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(up6)
-    # conv6 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv6)
-    #
-    # up7 = concatenate([Conv2DTranspose(128, (2, 2), strides=(2, 2), padding='same')(conv6), conv3], axis=3)
-    # conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(up7)
-    # conv7 = Conv2D(128, (3, 3), activation='relu', padding='same')(conv7)
-    #
-    # up8 = concatenate([Conv2DTranspose(64, (2, 2), strides=(2, 2), padding='same')(conv7), conv2], axis=3)
-    # conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(up8)
-    # conv8 = Conv2D(64, (3, 3), activation='relu', padding='same')(conv8)
-    #
-    # up9 = concatenate([Conv2DTranspose(32, (2, 2), strides=(2, 2), padding='same')(conv8), conv1], axis=3)
-    # conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(up9)
-    # conv9 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv9)
-    #
-    # conv10 = Conv2D(1, (1, 1), activation='sigmoid')(conv9)
-    # model = Model(inputs=[inputs], outputs=[conv10])
 
     c1 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(inputs)
     # c1 = Dropout(0.1)(c1)
@@ -100,7 +72,7 @@ def get_unet_model(num_classes=3):
     # c9 = Dropout(0.1)(c9)
     c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c9)
 
-    outputs = Conv2D(num_classes, (1, 1), activation='sigmoid')(c9)
+    outputs = Conv2D(num_classes, (1, 1), activation=activation)(c9)
 
     model = Model(inputs=[inputs], outputs=[outputs])
 
@@ -108,20 +80,26 @@ def get_unet_model(num_classes=3):
 
     # model.compile(optimizer=Adam(lr=1e-3), loss=dice_coef_loss, metrics=[dice_coef])
     # model.compile(optimizer=Adam(lr=1e-4), loss=dice_coef_loss, metrics=[dice_coef])
-    model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=1e-4), loss=loss, metrics=['accuracy', dice_coef])
 
     # model.compile(optimizer=Adam(lr=1e-3), loss='binary_crossentropy', metrics=[mean_iou])
 
     return model
+
+
 
 def get_callbacks():
     # earlystopper = EarlyStopping(monitor='val_mean_iou', patience=5, verbose=1, mode='max')
     # reduce_lr = ReduceLROnPlateau(monitor='val_mean_iou', factor=0.5, patience=1, verbose=1, mode='max')
     # checkpointer = ModelCheckpoint('model.h5', mode = 'max', monitor='val_mean_iou', verbose=1,
     #                                save_best_only=True, save_weights_only=False)
-    earlystopper = EarlyStopping(monitor='val_dice_coef', patience=5, verbose=1, mode='max')
-    reduce_lr = ReduceLROnPlateau(monitor='val_dice_coef', factor=0.5, patience=1, verbose=1, mode='max')
-    checkpointer = ModelCheckpoint('model.h5', monitor='val_dice_coef', mode = 'max',  verbose=1,
+    # earlystopper = EarlyStopping(monitor='val_dice_coef', patience=5, verbose=1, mode='max')
+    # reduce_lr = ReduceLROnPlateau(monitor='val_dice_coef', factor=0.5, patience=1, verbose=1, mode='max')
+    # checkpointer = ModelCheckpoint('model.h5', monitor='val_dice_coef', mode = 'max',  verbose=1,
+    #                                save_best_only=True, save_weights_only=False)
+    earlystopper = EarlyStopping(monitor='val_acc', patience=5, verbose=1, mode='max')
+    reduce_lr = ReduceLROnPlateau(monitor='val_acc', factor=0.5, patience=1, verbose=1, mode='max')
+    checkpointer = ModelCheckpoint('model.h5', monitor='val_acc', mode = 'max',  verbose=1,
                                    save_best_only=True, save_weights_only=False)
     lr_tracker = LearningRateTracker()
     return [earlystopper, checkpointer, reduce_lr, lr_tracker]
