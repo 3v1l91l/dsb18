@@ -16,6 +16,7 @@ from imgaug import augmenters as iaa
 from generators import *
 import imgaug as ia
 from zf import ZF_UNET_224
+from keras.utils import to_categorical
 
 seed = 42
 random.seed = seed
@@ -37,6 +38,8 @@ def train():
     y_valid = data['y_valid'].astype(np.float64)
     X_train = X_train / 255
     X_valid = X_valid / 255
+    y_train_cat = to_categorical(y_train, num_classes=3)
+    y_valid_cat = to_categorical(y_valid, num_classes=3)
 
     sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
@@ -108,13 +111,12 @@ def train():
     #     workers=4,
     #     callbacks=get_callbacks())
 
-    # model = get_unet_model()
-    model = ZF_UNET_224()
+    model = get_unet_model(3)
     # model.load_weights('model.h5')
     # model = load_model('model.h5', custom_objects={'dice_coef_loss': dice_coef_loss, 'dice_coef': dice_coef})
     model.fit_generator(
-        generator=generator(seq, X_train, y_train, BATCH_SIZE),
-        validation_data=generator(seq, X_valid, y_valid, BATCH_SIZE, hooks=hooks_masks),
+        generator=generator(seq, X_train, y_train_cat, BATCH_SIZE),
+        validation_data=generator(seq, X_valid, y_valid_cat, BATCH_SIZE, hooks=hooks_masks),
         steps_per_epoch=X_train.shape[0] // BATCH_SIZE,
         validation_steps=X_valid.shape[0] // BATCH_SIZE,
         epochs=100,

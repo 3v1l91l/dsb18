@@ -65,8 +65,8 @@ def _get_train_data(train_dir, normalize):
 
             overlay_mask = np.maximum(mask_with_contours, overlay_mask)
 
-        fig = plt.figure()
-        plt.imshow(np.squeeze(overlay_mask))
+        # fig = plt.figure()
+        # plt.imshow(np.squeeze(overlay_mask))
         y[i] = overlay_mask
         # Y.append(overlay_mask)
     # X = np.array(X)

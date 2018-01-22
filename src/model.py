@@ -8,11 +8,11 @@ import numpy as np
 from keras.losses import binary_crossentropy
 
 # IMG_WIDTH = IMG_HEIGHT = 512
-IMG_WIDTH = IMG_HEIGHT = 224
+IMG_WIDTH = IMG_HEIGHT = 256
 
 IMG_CHANNELS = 1
 
-def get_unet_model():
+def get_unet_model(num_classes=3):
     inputs = Input((IMG_WIDTH, IMG_HEIGHT, IMG_CHANNELS))
     # conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
     # conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(conv1)
@@ -100,7 +100,7 @@ def get_unet_model():
     # c9 = Dropout(0.1)(c9)
     c9 = Conv2D(16, (3, 3), activation='elu', kernel_initializer='he_normal', padding='same')(c9)
 
-    outputs = Conv2D(1, (1, 1), activation='sigmoid')(c9)
+    outputs = Conv2D(num_classes, (1, 1), activation='sigmoid')(c9)
 
     model = Model(inputs=[inputs], outputs=[outputs])
 
